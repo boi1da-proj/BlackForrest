@@ -1,0 +1,80 @@
+{
+  "name": "Sample Extrude Graph",
+  "version": "0.1",
+  "isShadowMode": false,
+  "nodes": [
+    {
+      "id": "extrude-001",
+      "type": "Extrude",
+      "title": "Extrude",
+      "position": {
+        "x": 100.0,
+        "y": 100.0
+      },
+      "size": {
+        "width": 240.0,
+        "height": 120.0
+      },
+      "isShadowMode": false,
+      "settings": {
+        "Height": "2.5",
+        "Polyline": "Rectangle"
+      },
+      "inputs": [
+        {
+          "name": "Polyline2D",
+          "type": "geometry",
+          "isConnected": false,
+          "connectedNodeId": "",
+          "connectedOutputName": ""
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Mesh3D",
+          "type": "mesh",
+          "isConnected": false
+        }
+      ]
+    },
+    {
+      "id": "loft-001",
+      "type": "Loft",
+      "title": "Loft",
+      "position": {
+        "x": 400.0,
+        "y": 100.0
+      },
+      "size": {
+        "width": 240.0,
+        "height": 120.0
+      },
+      "isShadowMode": false,
+      "settings": {},
+      "inputs": [
+        {
+          "name": "Profile1",
+          "type": "geometry",
+          "isConnected": false,
+          "connectedNodeId": "",
+          "connectedOutputName": ""
+        },
+        {
+          "name": "Profile2",
+          "type": "geometry",
+          "isConnected": false,
+          "connectedNodeId": "",
+          "connectedOutputName": ""
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Surface",
+          "type": "surface",
+          "isConnected": false
+        }
+      ]
+    }
+  ],
+  "connections": []
+}

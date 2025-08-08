@@ -7,6 +7,7 @@ using Compute.Shadow.Geometry;
 using Compute.Shadow.Bridge;
 using Compute.Shadow.Artifacts;
 using Soft.Geometry.UI;
+using Soft.Geometry.UI.FancyFe;
 
 namespace Compute.Shadow.App
 {
@@ -37,10 +38,10 @@ namespace Compute.Shadow.App
             // IComputeClient remote = new RhinoComputeClient("http://localhost:8000");
             // var remoteMesh = await remote.ExtrudePolylineAsync(polyline, height);
 
-            // Launch a simple Rutten-style UI
+            // Launch the enhanced David Rutten-style UI with Shadow Code features
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            var form = new Soft.Geometry.UI.NodeCanvasForm();
+            var form = new Soft.Geometry.UI.FancyFe.NodeCanvasForm();
             Application.Run(form);
 
             // Artifact index example (static demo)
