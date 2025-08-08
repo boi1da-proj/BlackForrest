@@ -15,6 +15,7 @@ namespace Soft.Geometry.UI.FancyFe
         private readonly ListBox _logListBox;
         private readonly ShadowPreviewPanel _shadowBadge;
         private readonly Panel _viewportStub;
+        private readonly NLToGraphPanel _nlPanel;
         private NodeControl _dragging;
         private Point _dragOffset;
         private NodeControl _selectedNode;
@@ -27,7 +28,7 @@ namespace Soft.Geometry.UI.FancyFe
         public NodeCanvasForm()
         {
             this.Text = "Soft.Geometry — Node Canvas (David Rutten-inspired, Shadow Code UI)";
-            this.Width = 1400;
+            this.Width = 1500;
             this.Height = 900;
             this.BackColor = BrandTheme.Background;
             this.KeyPreview = true;
@@ -62,11 +63,21 @@ namespace Soft.Geometry.UI.FancyFe
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                SplitterDistance = 1000
+                SplitterDistance = 1120
             };
 
             // Left panel hosts a sub-split: canvas (top) + viewport (bottom)
             var leftSplit = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Vertical,
+                SplitterDistance = 340
+            };
+
+            _nlPanel = new NLToGraphPanel(_graph);
+            leftSplit.Panel1.Controls.Add(_nlPanel);
+
+            var innerVertSplit = new SplitContainer
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal,
@@ -81,26 +92,12 @@ namespace Soft.Geometry.UI.FancyFe
                 DoubleBuffered = true
             };
             _canvas.Paint += Canvas_Paint;
-            leftSplit.Panel1.Controls.Add(_canvas);
+            innerVertSplit.Panel1.Controls.Add(_canvas);
 
-            _viewportStub = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            var vpTitle = new Label
-            {
-                Text = "3D Viewport (stub)",
-                Dock = DockStyle.Top,
-                Height = 22,
-                TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.White,
-                BackColor = BrandTheme.ShadowMode
-            };
-            _viewportStub.Controls.Add(vpTitle);
-            leftSplit.Panel2.Controls.Add(_viewportStub);
+            _viewportStub = new Viewport3DPanel();
+            innerVertSplit.Panel2.Controls.Add(_viewportStub);
 
+            leftSplit.Panel2.Controls.Add(innerVertSplit);
             splitContainer.Panel1.Controls.Add(leftSplit);
 
             // Right panel for inspector and logs
@@ -154,7 +151,7 @@ namespace Soft.Geometry.UI.FancyFe
             _canvas.MouseUp += Canvas_MouseUp;
 
             // Seed initial
-            AddNodeTemplate("Extrude", new PointF(100, 100));
+            AddNodeTemplate("Extrude", new PointF(420, 140));
             LogMessage("Graph initialized with Extrude node");
         }
 
@@ -211,6 +208,29 @@ namespace Soft.Geometry.UI.FancyFe
                     node.Settings["Height"] = "1.0";
                     node.Settings["Polyline"] = "Rectangle";
                     break;
+                case "Loft":
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "Profile1" }, new InputSocket { Name = "Profile2" } };
+                    node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Surface" } };
+                    break;
+                case "Transform":
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "Mesh" } };
+                    node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Mesh" } };
+                    node.Settings["Translate"] = "0,0,0";
+                    break;
+                case "Boolean":
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "MeshA" }, new InputSocket { Name = "MeshB" } };
+                    node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Result" } };
+                    node.Settings["Operation"] = "Union";
+                    break;
+                case "Fillet":
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "Polyline2D" } };
+                    node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Polyline2D" } };
+                    node.Settings["Radius"] = "0.25";
+                    break;
+                case "Loft-by-Path":
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "Path" }, new InputSocket { Name = "Profiles" } };
+                    node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Surface" } };
+                    break;
             }
 
             _graph.Nodes.Add(node);
@@ -233,10 +253,7 @@ namespace Soft.Geometry.UI.FancyFe
             LogMessage($"Updated {node.Title} properties");
         }
 
-        private void Canvas_MouseDown(object sender, MouseEventArgs e)
-        {
-            // no-op; node mouse handlers manage dragging start
-        }
+        private void Canvas_MouseDown(object sender, MouseEventArgs e) { }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
@@ -259,6 +276,67 @@ namespace Soft.Geometry.UI.FancyFe
                 LogMessage($"Moved {_dragging.Model.Title} to ({snappedX}, {snappedY})");
                 _dragging = null;
             }
+        }
+
+        private void SaveGraph()
+        {
+            using var saveDialog = new SaveFileDialog
+            {
+                Filter = "Graph files (*.json)|*.json|All files (*.*)|*.*",
+                FilterIndex = 1,
+                RestoreDirectory = true
+            };
+            if (saveDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    GraphSerializer.Save(saveDialog.FileName, _graph);
+                    LogMessage($"Graph saved to {saveDialog.FileName}");
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"Error saving graph: {ex.Message}");
+                }
+            }
+        }
+
+        private void LoadGraph()
+        {
+            using var openDialog = new OpenFileDialog
+            {
+                Filter = "Graph files (*.json)|*.json|All files (*.*)|*.*",
+                FilterIndex = 1,
+                RestoreDirectory = true
+            };
+            if (openDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    _graph = GraphSerializer.Load(openDialog.FileName);
+                    RefreshCanvas();
+                    LogMessage($"Graph loaded from {openDialog.FileName}");
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"Error loading graph: {ex.Message}");
+                }
+            }
+        }
+
+        private void RefreshCanvas()
+        {
+            foreach (var ctrl in _nodeControls) _canvas.Controls.Remove(ctrl);
+            _nodeControls.Clear();
+            foreach (var node in _graph.Nodes)
+            {
+                var ctrl = new NodeControl(node);
+                ctrl.UpdateShadowMode(_isShadowMode);
+                _nodeControls.Add(ctrl);
+                _canvas.Controls.Add(ctrl);
+                ctrl.MouseDown += (s, e) => { _dragging = ctrl; _dragOffset = new Point(e.X, e.Y); _selectedNode = ctrl; };
+                ctrl.MouseDoubleClick += (s, e) => { _inspectorPanel.SetNode(ctrl.Model); };
+            }
+            _canvas.Invalidate();
         }
 
         private void LogMessage(string message)
