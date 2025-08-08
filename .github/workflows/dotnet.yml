@@ -1,0 +1,24 @@
+name: .NET CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    - name: Restore
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore -v minimal
+    - name: Test
+      run: dotnet test --no-build --verbosity minimal
+    - name: Run index regen (optional)
+      run: python3 scripts/regenerate_index.py || true

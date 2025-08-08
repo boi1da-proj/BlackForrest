@@ -1,0 +1,17 @@
+{
+  "generated_at": "2025-01-08T12:00:00Z",
+  "entries": [
+    {
+      "AssetId": "black-forrest-core-001",
+      "Name": "BlackForrest Core Engine",
+      "Type": "modeling-engine",
+      "Path": "src/BlackForrest.Core/BlackForrest.Core.csproj",
+      "Version": "1.0.0",
+      "Checksum": "sha256-REPLACE-WITH-CALCULATED-SUM",
+      "Dependencies": ["System.Numerics.Vectors", "Newtonsoft.Json"],
+      "ShadowDeploymentMetadata": "local",
+      "EnvironmentLabel": "dev",
+      "Timestamp": "2025-01-08T12:00:00Z"
+    }
+  ]
+}
