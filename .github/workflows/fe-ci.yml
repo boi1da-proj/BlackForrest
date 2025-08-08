@@ -1,0 +1,27 @@
+name: FE Neon Rutten Shadow CI
+
+on:
+  push:
+    paths:
+      - "src/Soft.Geometry.UI.FancyFe/**"
+      - ".github/workflows/fe-ci.yml"
+
+jobs:
+  build-fe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore
+      - name: Build
+        run: dotnet build -c Release --no-restore
+      - name: Serialize Graph smoke test
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path samples | Out-Null
+          Set-Content -Path samples/ci_graph.json -Value '{"name":"CI","version":"0.1","nodes":[],"connections":[]}'
+          Write-Host "Graph JSON stub created"
