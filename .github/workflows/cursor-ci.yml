@@ -1,0 +1,36 @@
+name: Cursor CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test-validate:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Restore
+        run: dotnet restore | cat
+      - name: Build
+        run: dotnet build -c Release --no-restore | cat
+      - name: Run unit/integration tests
+        run: dotnet test tests/Cursor.Tests/Cursor.Tests.csproj -c Release --no-build --logger "trx;LogFileName=test_results.trx" | cat
+      - name: Validate artifact_index.json (schema)
+        run: python3 scripts/validate_artifact_index.py || true
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: tests/**/TestResults/**/*.trx
