@@ -5,9 +5,15 @@ namespace Soft.Geometry.UI.FancyFe
 {
     public class NodeControl : UserControl
     {
+        private const int ResizeGripSize = 12;
+
         public NodeModel Model { get; private set; }
         public bool IsSelected { get; set; } = false;
         public bool IsShadowMode { get; set; } = false;
+
+        private bool _isResizing;
+        private Point _resizeStartMouse;
+        private Size _resizeStartSize;
 
         public NodeControl(NodeModel model)
         {
@@ -19,10 +25,18 @@ namespace Soft.Geometry.UI.FancyFe
             this.DoubleBuffered = true;
 
             SetupVisuals();
+
+            this.MouseDown += OnMouseDownInternal;
+            this.MouseMove += OnMouseMoveInternal;
+            this.MouseUp += OnMouseUpInternal;
+            this.Cursor = Cursors.Default;
         }
 
         private void SetupVisuals()
         {
+            // Clear any previous children to avoid duplicates on rebuild
+            this.Controls.Clear();
+
             // Title bar with neon styling
             var titleBar = new Panel
             {
@@ -145,6 +159,7 @@ namespace Soft.Geometry.UI.FancyFe
                 "Loft" => BrandTheme.NeonCyan,
                 "Boolean" => BrandTheme.Purple,
                 "Transform" => BrandTheme.Yellow,
+                "Fillet" => BrandTheme.Green,
                 _ => BrandTheme.Primary
             };
         }
@@ -159,16 +174,7 @@ namespace Soft.Geometry.UI.FancyFe
         public void UpdateSelection(bool selected)
         {
             IsSelected = selected;
-            if (selected)
-            {
-                this.BorderStyle = BorderStyle.Fixed3D;
-                this.BackColor = BrandTheme.SelectionHighlight;
-            }
-            else
-            {
-                this.BorderStyle = BorderStyle.None;
-                this.BackColor = BrandTheme.Surface;
-            }
+            Invalidate();
         }
 
         public void UpdateShadowMode(bool shadowMode)
@@ -176,6 +182,68 @@ namespace Soft.Geometry.UI.FancyFe
             IsShadowMode = shadowMode;
             Model.IsShadowMode = shadowMode;
             SetupVisuals(); // Recreate visuals with new shadow mode
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            // Draw selection outline
+            if (IsSelected)
+            {
+                using var selPen = new Pen(Color.FromArgb(255, 0, 128), 2f);
+                e.Graphics.DrawRectangle(selPen, 1, 1, this.Width - 3, this.Height - 3);
+            }
+
+            // Draw resize grip
+            using var gripBrush = new SolidBrush(Color.FromArgb(160, 160, 160));
+            var gripRect = new Rectangle(this.Width - ResizeGripSize, this.Height - ResizeGripSize, ResizeGripSize, ResizeGripSize);
+            e.Graphics.FillRectangle(gripBrush, gripRect);
+        }
+
+        private void OnMouseDownInternal(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left && IsInResizeGrip(e.Location))
+            {
+                _isResizing = true;
+                _resizeStartMouse = PointToScreen(e.Location);
+                _resizeStartSize = this.Size;
+                this.Capture = true;
+            }
+        }
+
+        private void OnMouseMoveInternal(object sender, MouseEventArgs e)
+        {
+            if (_isResizing)
+            {
+                var current = PointToScreen(e.Location);
+                int dx = current.X - _resizeStartMouse.X;
+                int dy = current.Y - _resizeStartMouse.Y;
+                int newW = System.Math.Max(160, _resizeStartSize.Width + dx);
+                int newH = System.Math.Max(100, _resizeStartSize.Height + dy);
+                this.Size = new Size(newW, newH);
+                Model.Size = new SizeF(newW, newH);
+                Invalidate();
+            }
+            else
+            {
+                this.Cursor = IsInResizeGrip(e.Location) ? Cursors.SizeNWSE : Cursors.Default;
+            }
+        }
+
+        private void OnMouseUpInternal(object sender, MouseEventArgs e)
+        {
+            if (_isResizing)
+            {
+                _isResizing = false;
+                this.Capture = false;
+            }
+        }
+
+        private bool IsInResizeGrip(Point p)
+        {
+            return p.X >= this.Width - ResizeGripSize && p.Y >= this.Height - ResizeGripSize;
         }
     }
 }

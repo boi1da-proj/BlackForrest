@@ -13,14 +13,26 @@ namespace Soft.Geometry.UI.FancyFe
         private readonly List<NodeControl> _nodeControls = new List<NodeControl>();
         private readonly NodeInspectorPanel _inspectorPanel;
         private readonly ListBox _logListBox;
+
+        // Selection & interaction
+        private readonly HashSet<NodeControl> _selectedNodes = new HashSet<NodeControl>();
         private NodeControl _dragging;
         private Point _dragOffset;
-        private NodeControl _selectedNode;
         private bool _isShadowMode = false;
+
+        private bool _isSelecting = false;
+        private Point _selectStart;
+        private Rectangle _selectionRect;
+
+        // Multidrag helpers
+        private Dictionary<NodeControl, Point> _dragStartPositions = new Dictionary<NodeControl, Point>();
 
         // Undo/Redo stacks
         private Stack<GraphModel> _undoStack = new Stack<GraphModel>();
         private Stack<GraphModel> _redoStack = new Stack<GraphModel>();
+
+        // Clipboard
+        private List<NodeModel> _clipboard = new List<NodeModel>();
 
         public NodeCanvasForm()
         {
@@ -37,7 +49,7 @@ namespace Soft.Geometry.UI.FancyFe
 
         private void SetupLayout()
         {
-            // Top toolbar with neon styling
+            // Top toolbar
             var topBar = new Panel 
             { 
                 Height = 50, 
@@ -46,32 +58,17 @@ namespace Soft.Geometry.UI.FancyFe
                 BorderStyle = BorderStyle.FixedSingle
             };
 
-            // Node creation buttons
-            var addExtrudeBtn = CreateNeonButton("Add Extrude", BrandTheme.Primary, 8, 8);
-            addExtrudeBtn.Click += (s, e) => AddNodeTemplate("Extrude");
-            topBar.Controls.Add(addExtrudeBtn);
-
-            var addLoftBtn = CreateNeonButton("Add Loft", BrandTheme.NeonCyan, 120, 8);
-            addLoftBtn.Click += (s, e) => AddNodeTemplate("Loft");
-            topBar.Controls.Add(addLoftBtn);
-
-            var addBooleanBtn = CreateNeonButton("Add Boolean", BrandTheme.Purple, 232, 8);
-            addBooleanBtn.Click += (s, e) => AddNodeTemplate("Boolean");
-            topBar.Controls.Add(addBooleanBtn);
-
-            // Shadow mode toggle
-            var shadowToggleBtn = CreateNeonButton("Shadow Mode: OFF", BrandTheme.ShadowMode, 344, 8);
-            shadowToggleBtn.Click += (s, e) => ToggleShadowMode();
-            topBar.Controls.Add(shadowToggleBtn);
-
-            // Save/Load buttons
-            var saveBtn = CreateNeonButton("Save Graph", BrandTheme.Green, 456, 8);
+            var saveBtn = CreateNeonButton("Save Graph", BrandTheme.Green, 8, 8);
             saveBtn.Click += (s, e) => SaveGraph();
             topBar.Controls.Add(saveBtn);
 
-            var loadBtn = CreateNeonButton("Load Graph", BrandTheme.Blue, 568, 8);
+            var loadBtn = CreateNeonButton("Load Graph", BrandTheme.Blue, 120, 8);
             loadBtn.Click += (s, e) => LoadGraph();
             topBar.Controls.Add(loadBtn);
+
+            var shadowToggleBtn = CreateNeonButton("Shadow", BrandTheme.ShadowMode, 232, 8);
+            shadowToggleBtn.Click += (s, e) => ToggleShadowMode();
+            topBar.Controls.Add(shadowToggleBtn);
 
             this.Controls.Add(topBar);
 
@@ -80,8 +77,42 @@ namespace Soft.Geometry.UI.FancyFe
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                SplitterDistance = 1000
+                SplitterDistance = 1050
             };
+
+            // Left area (canvas + toolbox)
+            var leftArea = new Panel { Dock = DockStyle.Fill };
+
+            // Toolbox on the left
+            var toolbox = new Panel
+            {
+                Dock = DockStyle.Left,
+                Width = 160,
+                BackColor = BrandTheme.Surface,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            var toolboxHeader = new Label
+            {
+                Text = "Palette",
+                Dock = DockStyle.Top,
+                Height = 28,
+                TextAlign = ContentAlignment.MiddleCenter,
+                BackColor = BrandTheme.Primary,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
+            toolbox.Controls.Add(toolboxHeader);
+
+            // Node type buttons
+            int by = 36;
+            toolbox.Controls.Add(CreateToolboxButton("Extrude", BrandTheme.Primary, by, () => AddNodeTemplate("Extrude"))); by += 36;
+            toolbox.Controls.Add(CreateToolboxButton("Loft", BrandTheme.NeonCyan, by, () => AddNodeTemplate("Loft"))); by += 36;
+            toolbox.Controls.Add(CreateToolboxButton("Boolean", BrandTheme.Purple, by, () => AddNodeTemplate("Boolean"))); by += 36;
+            toolbox.Controls.Add(CreateToolboxButton("Transform", BrandTheme.Yellow, by, () => AddNodeTemplate("Transform"))); by += 36;
+            toolbox.Controls.Add(CreateToolboxButton("Fillet", BrandTheme.Green, by, () => AddNodeTemplate("Fillet"))); by += 36;
+
+            leftArea.Controls.Add(toolbox);
 
             // Canvas area with grid
             _canvas = new Panel
@@ -92,14 +123,16 @@ namespace Soft.Geometry.UI.FancyFe
                 DoubleBuffered = true
             };
             _canvas.Paint += Canvas_Paint;
-            splitContainer.Panel1.Controls.Add(_canvas);
+            leftArea.Controls.Add(_canvas);
+
+            splitContainer.Panel1.Controls.Add(leftArea);
 
             // Right panel for inspector and logs
             var rightPanel = new SplitContainer
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal,
-                SplitterDistance = 300
+                SplitterDistance = 320
             };
 
             // Inspector panel
@@ -142,6 +175,22 @@ namespace Soft.Geometry.UI.FancyFe
             this.Controls.Add(splitContainer);
         }
 
+        private Button CreateToolboxButton(string text, Color color, int y, Action onClick)
+        {
+            var b = new Button
+            {
+                Text = text,
+                Location = new Point(10, y),
+                Size = new Size(130, 28),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = color,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 8f, FontStyle.Bold)
+            };
+            b.Click += (s, e) => onClick();
+            return b;
+        }
+
         private Button CreateNeonButton(string text, Color color, int x, int y)
         {
             return new Button
@@ -174,32 +223,54 @@ namespace Soft.Geometry.UI.FancyFe
                         case Keys.Y: Redo(); break;
                         case Keys.S: SaveGraph(); break;
                         case Keys.O: LoadGraph(); break;
-                        case Keys.Delete: DeleteSelectedNode(); break;
+                        case Keys.C: CopySelected(); break;
+                        case Keys.V: PasteClipboard(); break;
+                        case Keys.D: DuplicateSelected(); break;
                     }
                 }
+                if (e.KeyCode == Keys.Delete) DeleteSelectedNodes();
             };
         }
 
         private void Canvas_Paint(object sender, PaintEventArgs e)
         {
-            // Draw subtle grid
+            // Grid
             using (var gridPen = new Pen(BrandTheme.GridLines, 1f))
             {
                 int gridSize = 20;
                 for (int x = 0; x < _canvas.Width; x += gridSize)
-                {
                     e.Graphics.DrawLine(gridPen, x, 0, x, _canvas.Height);
-                }
                 for (int y = 0; y < _canvas.Height; y += gridSize)
-                {
                     e.Graphics.DrawLine(gridPen, 0, y, _canvas.Width, y);
+            }
+
+            // Connections (simple center-to-center for now)
+            using (var connPen = new Pen(BrandTheme.ConnectionLine, 2f))
+            {
+                foreach (var c in _graph.Connections)
+                {
+                    var src = _nodeControls.FirstOrDefault(n => n.Model.Id == c.SourceNodeId);
+                    var dst = _nodeControls.FirstOrDefault(n => n.Model.Id == c.TargetNodeId);
+                    if (src == null || dst == null) continue;
+                    var p1 = new Point(src.Left + src.Width - 4, src.Top + src.Height / 2);
+                    var p2 = new Point(dst.Left + 4, dst.Top + dst.Height / 2);
+                    e.Graphics.DrawLine(connPen, p1, p2);
                 }
+            }
+
+            // Selection rectangle
+            if (_isSelecting)
+            {
+                using var selBrush = new SolidBrush(Color.FromArgb(40, BrandTheme.NeonCyan));
+                using var selPen = new Pen(BrandTheme.NeonCyan, 1.5f);
+                e.Graphics.FillRectangle(selBrush, _selectionRect);
+                e.Graphics.DrawRectangle(selPen, _selectionRect);
             }
         }
 
         private void SeedInitialGraph()
         {
-            AddNodeTemplate("Extrude", new PointF(100, 100));
+            AddNodeTemplate("Extrude", new PointF(220, 140));
             LogMessage("Graph initialized with Extrude node");
         }
 
@@ -214,7 +285,7 @@ namespace Soft.Geometry.UI.FancyFe
                 Title = type,
                 Id = Guid.NewGuid().ToString("N"),
                 Position = pos,
-                Size = new SizeF(240, 120),
+                Size = new SizeF(240, 140),
                 IsShadowMode = _isShadowMode
             };
 
@@ -228,21 +299,23 @@ namespace Soft.Geometry.UI.FancyFe
                     node.Settings["Polyline"] = "Rectangle";
                     break;
                 case "Loft":
-                    node.Inputs = new List<InputSocket> 
-                    { 
-                        new InputSocket { Name = "Profile1" },
-                        new InputSocket { Name = "Profile2" }
-                    };
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "Profile1" }, new InputSocket { Name = "Profile2" } };
                     node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Surface" } };
                     break;
                 case "Boolean":
-                    node.Inputs = new List<InputSocket> 
-                    { 
-                        new InputSocket { Name = "MeshA" },
-                        new InputSocket { Name = "MeshB" }
-                    };
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "MeshA" }, new InputSocket { Name = "MeshB" } };
                     node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Result" } };
                     node.Settings["Operation"] = "Union";
+                    break;
+                case "Transform":
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "Mesh" } };
+                    node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Mesh" } };
+                    node.Settings["Translate"] = "0,0,0";
+                    break;
+                case "Fillet":
+                    node.Inputs = new List<InputSocket> { new InputSocket { Name = "Polyline2D" } };
+                    node.Outputs = new List<OutputSocket> { new OutputSocket { Name = "Polyline2D" } };
+                    node.Settings["Radius"] = "0.25";
                     break;
             }
 
@@ -255,15 +328,26 @@ namespace Soft.Geometry.UI.FancyFe
             {
                 if (e.Button == MouseButtons.Left)
                 {
+                    // Toggle selection on Ctrl, otherwise select solely
+                    if ((ModifierKeys & Keys.Control) == Keys.Control)
+                    {
+                        ToggleSelection(ctrl);
+                    }
+                    else
+                    {
+                        SelectSingle(ctrl);
+                    }
+
+                    // Setup drag for all selected nodes
                     _dragging = ctrl;
                     _dragOffset = new Point(e.X, e.Y);
-                    SelectNode(ctrl);
+                    _dragStartPositions = _selectedNodes.ToDictionary(n => n, n => n.Location);
                 }
             };
 
             ctrl.MouseDoubleClick += (s, e) =>
             {
-                SelectNode(ctrl);
+                SelectSingle(ctrl);
                 _inspectorPanel.SetNode(ctrl.Model);
             };
 
@@ -274,19 +358,34 @@ namespace Soft.Geometry.UI.FancyFe
             LogMessage($"Added {type} node at ({pos.X:F0}, {pos.Y:F0})");
         }
 
-        private void SelectNode(NodeControl node)
+        private void SelectNone()
         {
-            // Deselect previous
-            if (_selectedNode != null)
-            {
-                _selectedNode.UpdateSelection(false);
-            }
+            foreach (var n in _selectedNodes)
+                n.UpdateSelection(false);
+            _selectedNodes.Clear();
+            _inspectorPanel.SetNode(null);
+        }
 
-            _selectedNode = node;
-            if (_selectedNode != null)
+        private void SelectSingle(NodeControl node)
+        {
+            SelectNone();
+            _selectedNodes.Add(node);
+            node.UpdateSelection(true);
+            _inspectorPanel.SetNode(node.Model);
+        }
+
+        private void ToggleSelection(NodeControl node)
+        {
+            if (_selectedNodes.Contains(node))
             {
-                _selectedNode.UpdateSelection(true);
-                _inspectorPanel.SetNode(_selectedNode.Model);
+                node.UpdateSelection(false);
+                _selectedNodes.Remove(node);
+            }
+            else
+            {
+                node.UpdateSelection(true);
+                _selectedNodes.Add(node);
+                _inspectorPanel.SetNode(node.Model);
             }
         }
 
@@ -296,9 +395,7 @@ namespace Soft.Geometry.UI.FancyFe
             _graph.IsShadowMode = _isShadowMode;
 
             foreach (var ctrl in _nodeControls)
-            {
                 ctrl.UpdateShadowMode(_isShadowMode);
-            }
 
             LogMessage($"Shadow Mode: {(_isShadowMode ? "ON" : "OFF")}");
         }
@@ -354,10 +451,9 @@ namespace Soft.Geometry.UI.FancyFe
         {
             // Clear existing controls
             foreach (var ctrl in _nodeControls)
-            {
                 _canvas.Controls.Remove(ctrl);
-            }
             _nodeControls.Clear();
+            SelectNone();
 
             // Recreate controls from graph
             foreach (var node in _graph.Nodes)
@@ -366,22 +462,114 @@ namespace Soft.Geometry.UI.FancyFe
                 ctrl.UpdateShadowMode(_isShadowMode);
                 _nodeControls.Add(ctrl);
                 _canvas.Controls.Add(ctrl);
+
+                // Reattach handlers
+                ctrl.MouseDown += (s, e) =>
+                {
+                    if (e.Button == MouseButtons.Left)
+                    {
+                        if ((ModifierKeys & Keys.Control) == Keys.Control) ToggleSelection(ctrl);
+                        else SelectSingle(ctrl);
+                        _dragging = ctrl;
+                        _dragOffset = new Point(e.X, e.Y);
+                        _dragStartPositions = _selectedNodes.ToDictionary(n => n, n => n.Location);
+                    }
+                };
+                ctrl.MouseDoubleClick += (s, e) => { SelectSingle(ctrl); _inspectorPanel.SetNode(ctrl.Model); };
             }
+
+            _canvas.Invalidate();
         }
 
-        private void DeleteSelectedNode()
+        private void DeleteSelectedNodes()
         {
-            if (_selectedNode != null)
+            if (_selectedNodes.Count == 0) return;
+            SaveSnapshot();
+            foreach (var ctrl in _selectedNodes.ToList())
             {
-                SaveSnapshot();
-                _graph.Nodes.Remove(_selectedNode.Model);
-                _nodeControls.Remove(_selectedNode);
-                _canvas.Controls.Remove(_selectedNode);
-                _selectedNode.Dispose();
-                _selectedNode = null;
-                _inspectorPanel.SetNode(null);
-                LogMessage("Selected node deleted");
+                _graph.Nodes.Remove(ctrl.Model);
+                _canvas.Controls.Remove(ctrl);
+                _nodeControls.Remove(ctrl);
             }
+            _selectedNodes.Clear();
+            _inspectorPanel.SetNode(null);
+            LogMessage("Deleted selected nodes");
+            _canvas.Invalidate();
+        }
+
+        private void CopySelected()
+        {
+            _clipboard.Clear();
+            foreach (var ctrl in _selectedNodes)
+            {
+                var m = ctrl.Model;
+                var copy = new NodeModel
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Type = m.Type,
+                    Title = m.Title,
+                    Position = new PointF(m.Position.X + 20, m.Position.Y + 20),
+                    Size = m.Size,
+                    IsShadowMode = m.IsShadowMode,
+                    Settings = new Dictionary<string, string>(m.Settings),
+                    Inputs = new List<InputSocket>(m.Inputs.Select(i => new InputSocket { Name = i.Name, Type = i.Type })),
+                    Outputs = new List<OutputSocket>(m.Outputs.Select(o => new OutputSocket { Name = o.Name, Type = o.Type }))
+                };
+                _clipboard.Add(copy);
+            }
+            LogMessage($"Copied {_clipboard.Count} node(s)");
+        }
+
+        private void PasteClipboard()
+        {
+            if (_clipboard.Count == 0) return;
+            SaveSnapshot();
+            SelectNone();
+            foreach (var copied in _clipboard)
+            {
+                // Create a fresh copy per paste operation
+                var node = new NodeModel
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Type = copied.Type,
+                    Title = copied.Title,
+                    Position = new PointF(copied.Position.X + 20, copied.Position.Y + 20),
+                    Size = copied.Size,
+                    IsShadowMode = copied.IsShadowMode,
+                    Settings = new Dictionary<string, string>(copied.Settings),
+                    Inputs = new List<InputSocket>(copied.Inputs.Select(i => new InputSocket { Name = i.Name, Type = i.Type })),
+                    Outputs = new List<OutputSocket>(copied.Outputs.Select(o => new OutputSocket { Name = o.Name, Type = o.Type }))
+                };
+                _graph.Nodes.Add(node);
+                var ctrl = new NodeControl(node);
+                ctrl.UpdateShadowMode(_isShadowMode);
+                _nodeControls.Add(ctrl);
+                _canvas.Controls.Add(ctrl);
+                _selectedNodes.Add(ctrl);
+                ctrl.UpdateSelection(true);
+
+                // Handlers
+                ctrl.MouseDown += (s, e) =>
+                {
+                    if (e.Button == MouseButtons.Left)
+                    {
+                        if ((ModifierKeys & Keys.Control) == Keys.Control) ToggleSelection(ctrl);
+                        else SelectSingle(ctrl);
+                        _dragging = ctrl;
+                        _dragOffset = new Point(e.X, e.Y);
+                        _dragStartPositions = _selectedNodes.ToDictionary(n => n, n => n.Location);
+                    }
+                };
+                ctrl.MouseDoubleClick += (s, e) => { SelectSingle(ctrl); _inspectorPanel.SetNode(ctrl.Model); };
+            }
+            LogMessage($"Pasted {_clipboard.Count} node(s)");
+            _canvas.Invalidate();
+        }
+
+        private void DuplicateSelected()
+        {
+            CopySelected();
+            PasteClipboard();
         }
 
         private void OnNodePropertyChanged(NodeModel node)
@@ -426,8 +614,8 @@ namespace Soft.Geometry.UI.FancyFe
                     Size = n.Size,
                     IsShadowMode = n.IsShadowMode,
                     Settings = new Dictionary<string, string>(n.Settings),
-                    Inputs = new List<InputSocket>(n.Inputs),
-                    Outputs = new List<OutputSocket>(n.Outputs)
+                    Inputs = new List<InputSocket>(n.Inputs.Select(i => new InputSocket { Name = i.Name, Type = i.Type })),
+                    Outputs = new List<OutputSocket>(n.Outputs.Select(o => new OutputSocket { Name = o.Name, Type = o.Type }))
                 }).ToList(),
                 Connections = new List<ConnectionModel>(g.Connections)
             };
@@ -460,24 +648,43 @@ namespace Soft.Geometry.UI.FancyFe
         {
             if (e.Button == MouseButtons.Left)
             {
-                // Check if clicking on empty space
-                var hitNode = _nodeControls.FirstOrDefault(n => 
-                    n.Bounds.Contains(e.Location));
-                
-                if (hitNode == null)
+                // If clicked empty space, start selection rectangle
+                var hit = _nodeControls.FirstOrDefault(n => n.Bounds.Contains(e.Location));
+                if (hit == null)
                 {
-                    SelectNode(null);
+                    _isSelecting = true;
+                    _selectStart = e.Location;
+                    _selectionRect = new Rectangle(e.Location, Size.Empty);
+                    _canvas.Invalidate();
                 }
             }
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (_dragging != null)
+            if (_dragging != null && _selectedNodes.Count > 0)
             {
-                var newPos = new Point(e.X - _dragOffset.X, e.Y - _dragOffset.Y);
-                _dragging.Location = newPos;
-                _dragging.Model.Position = new PointF(newPos.X, newPos.Y);
+                // Move all selected nodes relative to their start
+                foreach (var kv in _dragStartPositions)
+                {
+                    var ctrl = kv.Key;
+                    var start = kv.Value;
+                    var newPos = new Point(
+                        start.X + (e.X - _dragOffset.X),
+                        start.Y + (e.Y - _dragOffset.Y));
+                    ctrl.Location = newPos;
+                    ctrl.Model.Position = new PointF(newPos.X, newPos.Y);
+                }
+                _canvas.Invalidate();
+            }
+            else if (_isSelecting)
+            {
+                int x = Math.Min(_selectStart.X, e.X);
+                int y = Math.Min(_selectStart.Y, e.Y);
+                int w = Math.Abs(e.X - _selectStart.X);
+                int h = Math.Abs(e.Y - _selectStart.Y);
+                _selectionRect = new Rectangle(x, y, w, h);
+                _canvas.Invalidate();
             }
         }
 
@@ -485,8 +692,35 @@ namespace Soft.Geometry.UI.FancyFe
         {
             if (_dragging != null)
             {
-                LogMessage($"Moved {_dragging.Model.Title} to ({_dragging.Model.Position.X:F0}, {_dragging.Model.Position.Y:F0})");
+                // Snap to grid on release
+                foreach (var ctrl in _selectedNodes)
+                {
+                    int snappedX = (int)(Math.Round(ctrl.Left / 10.0) * 10);
+                    int snappedY = (int)(Math.Round(ctrl.Top / 10.0) * 10);
+                    ctrl.Location = new Point(snappedX, snappedY);
+                    ctrl.Model.Position = new PointF(snappedX, snappedY);
+                }
+                LogMessage("Moved node(s) with snapping");
                 _dragging = null;
+                _dragStartPositions.Clear();
+                _canvas.Invalidate();
+                return;
+            }
+
+            if (_isSelecting)
+            {
+                SelectNone();
+                foreach (var n in _nodeControls)
+                {
+                    if (_selectionRect.IntersectsWith(n.Bounds))
+                    {
+                        _selectedNodes.Add(n);
+                        n.UpdateSelection(true);
+                    }
+                }
+                _isSelecting = false;
+                _selectionRect = Rectangle.Empty;
+                _canvas.Invalidate();
             }
         }
     }
