@@ -2,9 +2,9 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using BlackForrest.Geometry;
+using Compute.Shadow.Geometry;
 
-namespace BlackForrest.ComputeBridge
+namespace Compute.Shadow.Bridge
 {
     // Template for remote Rhino.Compute integration.
     // Replace endpoint/payload shape with the actual Compute REST contract you adopt.

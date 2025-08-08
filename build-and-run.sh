@@ -2,7 +2,7 @@
 # BlackForrest Build and Run Script
 # Tests the complete multi-project solution
 
-echo "🌲 BlackForrest - C# Modeling Engine with White UI + Brand Colors"
+echo "🌲 Compute.Shadow - C# Modeling Engine with Soft.Geometry UI + Brand Colors"
 echo "=================================================================="
 
 # Check prerequisites
@@ -69,7 +69,7 @@ echo "   4. Launch the white UI with brand colors (if on Windows)"
 echo ""
 
 # Run the application
-dotnet run --project src/BlackForrest.App/BlackForrest.App.csproj
+dotnet run --project src/Compute.Shadow.App/Compute.Shadow.App.csproj
 
 echo ""
 echo "📊 Checking results..."
@@ -110,7 +110,7 @@ echo "✅ Run: Successful"
 echo "✅ STL Export: $(if [ -f "outputs/prism_local.stl" ]; then echo "Working"; else echo "Failed"; fi)"
 echo "✅ Logging: $(if [ -f "artifact_index.json" ] && grep -q "prism_local_001" artifact_index.json; then echo "Working"; else echo "Needs investigation"; fi)"
 echo ""
-echo "📁 Your BlackForrest is ready!"
+echo "📁 Your Compute.Shadow is ready!"
 echo "   - 2D/3D geometry engine: Working"
 echo "   - Rhino.Compute bridge: Ready for integration"
 echo "   - White UI with brand colors: Beautiful interface"
@@ -124,4 +124,4 @@ echo "   3. Enhance the node canvas UI"
 echo "   4. Add comprehensive testing"
 echo ""
 echo "🚀 Push to GitHub:"
-echo "   git add . && git commit -m 'feat: BlackForrest v1.0' && git push"
+echo "   git add . && git commit -m 'feat: Compute.Shadow v1.0' && git push"

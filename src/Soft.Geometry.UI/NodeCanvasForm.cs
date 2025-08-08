@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using BlackForrest.UI;
+using Soft.Geometry.UI;
 
-namespace BlackForrest.UI
+namespace Soft.Geometry.UI
 {
     public class NodeCanvasForm : Form
     {
@@ -15,7 +15,7 @@ namespace BlackForrest.UI
         public NodeCanvasForm()
         {
             // White UI base with strong brand accents
-            this.Text = "BlackForrest — Node Canvas (Rutten-inspired)";
+            this.Text = "Soft.Geometry — Node Canvas (Rutten-inspired)";
             this.Width = 980;
             this.Height = 640;
             this.BackColor = BrandTheme.Background;

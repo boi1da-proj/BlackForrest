@@ -2,19 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using BlackForrest.Core;
-using BlackForrest.Geometry;
-using BlackForrest.ComputeBridge;
-using BlackForrest.Artifacts;
-using BlackForrest.UI;
+using Compute.Shadow.Core;
+using Compute.Shadow.Geometry;
+using Compute.Shadow.Bridge;
+using Compute.Shadow.Artifacts;
+using Soft.Geometry.UI;
 
-namespace BlackForrest.App
+namespace Compute.Shadow.App
 {
     class Program
     {
         static async System.Threading.Tasks.Task Main(string[] args)
         {
-            Console.WriteLine("BlackForrest v1.0 - 2D/3D engine with local compute and optional remote compute.");
+            Console.WriteLine("Compute.Shadow v1.0 - 2D/3D engine with local compute and optional remote compute.");
 
             // Simple demonstration: create a 2D polyline and extrude to 3D
             var polyline = new List<Vector2> { new Vector2(0,0), new Vector2(6,0), new Vector2(6,4), new Vector2(0,4) };
@@ -40,7 +40,7 @@ namespace BlackForrest.App
             // Launch a simple Rutten-style UI
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            var form = new BlackForrest.UI.NodeCanvasForm();
+            var form = new Soft.Geometry.UI.NodeCanvasForm();
             Application.Run(form);
 
             // Artifact index example (static demo)
@@ -54,7 +54,7 @@ namespace BlackForrest.App
                 Path = stlPath,
                 Version = "1.0.0",
                 Checksum = "TODO_SHA256",
-                Dependencies = new List<string> { "BlackForrest.Core", "BlackForrest.UI" },
+                Dependencies = new List<string> { "Compute.Shadow.Core", "Soft.Geometry.UI" },
                 ShadowDeploymentMetadata = "local",
                 EnvironmentLabel = "dev",
                 Timestamp = DateTime.UtcNow.ToString("o")

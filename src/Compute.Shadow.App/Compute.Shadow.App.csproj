@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../BlackForrest.Core/BlackForrest.Core.csproj" />
-    <ProjectReference Include="../BlackForrest.ComputeBridge/BlackForrest.ComputeBridge.csproj" />
-    <ProjectReference Include="../BlackForrest.UI/BlackForrest.UI.csproj" />
+    <ProjectReference Include="../Compute.Shadow.Core/Compute.Shadow.Core.csproj" />
+<ProjectReference Include="../Compute.Shadow.Bridge/Compute.Shadow.Bridge.csproj" />
+<ProjectReference Include="../Soft.Geometry.UI/Soft.Geometry.UI.csproj" />
   </ItemGroup>
 
 </Project>

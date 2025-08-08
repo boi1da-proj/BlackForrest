@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace BlackForrest.Artifacts
+namespace Compute.Shadow.Artifacts
 {
     public class ArtifactIndexEntry
     {

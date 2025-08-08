@@ -1,6 +1,6 @@
 using System.Drawing;
 
-namespace BlackForrest.UI
+namespace Soft.Geometry.UI
 {
     // Centralized brand palette for a white UI with bold brand accents.
     public static class BrandTheme

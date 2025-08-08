@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
-using BlackForrest.Geometry;
+using Compute.Shadow.Geometry;
 
-namespace BlackForrest.ComputeBridge
+namespace Compute.Shadow.Bridge
 {
     public interface IComputeClient
     {

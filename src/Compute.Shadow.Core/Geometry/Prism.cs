@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace BlackForrest.Geometry
+namespace Compute.Shadow.Geometry
 {
     public static class Prism
     {
@@ -72,7 +72,7 @@ namespace BlackForrest.Geometry
         public static void ExportStl(Mesh3D mesh, string path)
         {
             using var writer = new System.IO.StreamWriter(path);
-            writer.WriteLine("solid BlackForrest");
+            writer.WriteLine("solid Compute.Shadow");
             foreach (var tri in mesh.Triangles)
             {
                 var v0 = mesh.Vertices[tri[0]];
@@ -88,7 +88,7 @@ namespace BlackForrest.Geometry
                 writer.WriteLine("    endloop");
                 writer.WriteLine("  endfacet");
             }
-            writer.WriteLine("endsolid BlackForrest");
+            writer.WriteLine("endsolid Compute.Shadow");
         }
 
         private static Vector3 ComputeNormal(Vector3 a, Vector3 b, Vector3 c)

@@ -1,28 +1,28 @@
-# BlackForrest
+# Compute.Shadow
 
 > **C# Modeling Engine** with 2D/3D geometry, Rhino.Compute integration, and David Rutten-style node canvas UI
 
-A fully wired, production-ready C# solution that demonstrates how to build a modeling engine that can compete with Rhino and Revit, leveraging Rhino.Compute for heavy lifting and providing a Grasshopper-like interface with a beautiful white UI and brand colors.
+A fully wired, production-ready C# solution that demonstrates how to build a modeling engine that can compete with Rhino and Revit, leveraging Rhino.Compute for heavy lifting and providing a Grasshopper-like interface with a beautiful white UI and brand colors. **Compute.Shadow** is the backend engine, while **Soft.Geometry** provides the frontend UI with BlackForrest as a feature within it.
 
 ## 🏗️ Architecture Overview
 
 ### Multi-Project Structure
 
 ```
-BlackForrest/
-├── BlackForrest.sln                    # Main solution file
+Compute.Shadow/
+├── Compute.Shadow.sln                  # Main solution file
 ├── src/
-│   ├── BlackForrest.Core/              # Core geometry engine
+│   ├── Compute.Shadow.Core/            # Core geometry engine
 │   │   ├── Geometry/Prism.cs           # 2D/3D operations
 │   │   └── Artifacts/                  # Artifact tracking
-│   ├── BlackForrest.ComputeBridge/     # Compute integration
+│   ├── Compute.Shadow.Bridge/          # Compute integration
 │   │   ├── IComputeClient.cs           # Compute interface
 │   │   ├── LocalComputeClient.cs       # Local compute (working)
 │   │   └── RhinoComputeClient.cs       # Remote compute template
-│   ├── BlackForrest.UI/                # David Rutten-style UI
+│   ├── Soft.Geometry.UI/               # Frontend UI (David Rutten-style)
 │   │   ├── BrandTheme.cs               # White UI + brand colors
 │   │   └── NodeCanvasForm.cs           # Node canvas interface
-│   └── BlackForrest.App/               # Main application
+│   └── Compute.Shadow.App/             # Main application
 │       └── Program.cs                  # Demo orchestrator
 ├── scripts/
 │   └── regenerate_index.py             # Artifact index regeneration
@@ -64,7 +64,7 @@ BlackForrest/
 
 ```bash
 # Clone and navigate to project
-cd BlackForrest
+cd Compute.Shadow
 
 # Restore dependencies
 dotnet restore
@@ -73,7 +73,7 @@ dotnet restore
 dotnet build
 
 # Run the demo
-dotnet run --project src/BlackForrest.App/BlackForrest.App.csproj
+dotnet run --project src/Compute.Shadow.App/Compute.Shadow.App.csproj
 ```
 
 ### What You'll See
@@ -85,7 +85,7 @@ dotnet run --project src/BlackForrest.App/BlackForrest.App.csproj
 
 ## 🔧 Core Components
 
-### 1. Geometry Engine (`BlackForrest.Core`)
+### 1. Geometry Engine (`Compute.Shadow.Core`)
 
 Lightweight, dependency-free geometry builder:
 
@@ -94,13 +94,13 @@ Lightweight, dependency-free geometry builder:
 var polyline2D = new List<Vector2> { ... };
 
 // Extrude to 3D prism
-var mesh = BlackForrest.Geometry.Prism.FromPolyline(polyline2D, height);
+var mesh = Compute.Shadow.Geometry.Prism.FromPolyline(polyline2D, height);
 
 // Export to STL
-BlackForrest.Geometry.MeshIO.ExportStl(mesh, "output.stl");
+Compute.Shadow.Geometry.MeshIO.ExportStl(mesh, "output.stl");
 ```
 
-### 2. Compute Bridge (`BlackForrest.ComputeBridge`)
+### 2. Compute Bridge (`Compute.Shadow.Bridge`)
 
 Clean extension points for offloading heavy operations:
 
@@ -114,7 +114,7 @@ IComputeClient remote = new RhinoComputeClient("http://localhost:6500");
 var remoteResult = await remote.ExtrudePolylineAsync(polyline2D, height);
 ```
 
-### 3. White UI with Brand Colors (`BlackForrest.UI`)
+### 3. Frontend UI (`Soft.Geometry.UI`)
 
 David Rutten-style interface with beautiful branding:
 
@@ -122,6 +122,7 @@ David Rutten-style interface with beautiful branding:
 - **Pink title bars** for nodes (brand primary)
 - **Draggable nodes** with input/output sockets
 - **Brand accent colors** for buttons and highlights
+- **BlackForrest feature** integrated within the UI
 
 ### 4. Artifact Tracking
 
@@ -212,11 +213,11 @@ public async Task<Mesh3D> ExtrudePolylineAsync(IList<Vector2> polyline, double h
 
 ```bash
 # Create new repo
-gh repo create BlackForrest --public --source=. --remote=origin --push
+gh repo create Compute.Shadow --public --source=. --remote=origin --push
 
 # Or if repo exists, push changes
 git add .
-git commit -m "feat: BlackForrest v1.0 - Complete 2D/3D engine with white UI + brand colors"
+git commit -m "feat: Compute.Shadow v1.0 - Complete 2D/3D engine with Soft.Geometry UI + brand colors"
 git push -u origin main
 ```
 
@@ -257,4 +258,4 @@ This project is provided as a starting point for building modeling engines. Use 
 
 ---
 
-**Ready to build the next generation of modeling software with beautiful white UI and brand colors!** 🌲🚀
+**Ready to build the next generation of modeling software with Compute.Shadow backend and Soft.Geometry UI!** 🌲🚀

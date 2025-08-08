@@ -5,6 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../BlackForrest.Core/BlackForrest.Core.csproj" />
+    <ProjectReference Include="../Compute.Shadow.Core/Compute.Shadow.Core.csproj" />
   </ItemGroup>
 </Project>
