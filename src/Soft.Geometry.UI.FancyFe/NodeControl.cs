@@ -5,15 +5,9 @@ namespace Soft.Geometry.UI.FancyFe
 {
     public class NodeControl : UserControl
     {
-        private const int ResizeGripSize = 12;
-
         public NodeModel Model { get; private set; }
-        public bool IsSelected { get; set; } = false;
-        public bool IsShadowMode { get; set; } = false;
-
-        private bool _isResizing;
-        private Point _resizeStartMouse;
-        private Size _resizeStartSize;
+        public bool IsSelected { get; set; }
+        public bool IsShadowMode { get; set; }
 
         public NodeControl(NodeModel model)
         {
@@ -24,27 +18,21 @@ namespace Soft.Geometry.UI.FancyFe
             this.Top = (int)model.Position.Y;
             this.DoubleBuffered = true;
 
-            SetupVisuals();
-
-            this.MouseDown += OnMouseDownInternal;
-            this.MouseMove += OnMouseMoveInternal;
-            this.MouseUp += OnMouseUpInternal;
-            this.Cursor = Cursors.Default;
+            BuildUi();
         }
 
-        private void SetupVisuals()
+        private void BuildUi()
         {
-            // Clear any previous children to avoid duplicates on rebuild
-            this.Controls.Clear();
+            Controls.Clear();
+            this.BackColor = BrandTheme.Surface;
+            this.BorderStyle = BorderStyle.None; // custom border in OnPaint
 
-            // Title bar with neon styling
             var titleBar = new Panel
             {
                 Height = 28,
                 Dock = DockStyle.Top,
                 BackColor = GetTitleBarColor()
             };
-
             var titleLbl = new Label
             {
                 Text = Model.Title,
@@ -53,106 +41,43 @@ namespace Soft.Geometry.UI.FancyFe
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter
             };
-
-            // Shadow mode indicator
-            if (IsShadowMode)
-            {
-                var shadowBadge = new Label
-                {
-                    Text = "🔒",
-                    ForeColor = BrandTheme.SandboxIndicator,
-                    Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                    AutoSize = true,
-                    Location = new Point(8, 4)
-                };
-                titleBar.Controls.Add(shadowBadge);
-            }
-
             titleBar.Controls.Add(titleLbl);
-            this.Controls.Add(titleBar);
+            Controls.Add(titleBar);
 
-            // Body area with subtle border
             var body = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = BrandTheme.Surface,
-                BorderStyle = BorderStyle.FixedSingle
+                BackColor = BrandTheme.Surface
             };
+            Controls.Add(body);
 
-            // Input sockets
-            var inputsPanel = new FlowLayoutPanel
+            // Inputs indicator
+            if (Model.Inputs != null && Model.Inputs.Count > 0)
             {
-                Dock = DockStyle.Top,
-                Height = 20 + (Model.Inputs.Count * 16),
-                Padding = new Padding(8, 4, 8, 4)
-            };
-
-            foreach (var input in Model.Inputs)
-            {
-                var socketLbl = new Label
+                var inDot = new Panel
                 {
-                    Text = $"● {input.Name}",
-                    ForeColor = input.IsConnected ? BrandTheme.Green : BrandTheme.NeonCyan,
-                    Font = new Font("Segoe UI", 8f, FontStyle.Regular),
-                    AutoSize = true,
-                    Margin = new Padding(0, 2, 0, 2)
+                    Size = new Size(10, 10),
+                    Location = new Point(8, titleBar.Bottom + 6),
+                    BackColor = GetSocketColor(Model.Inputs[0].Type, dark: false)
                 };
-                inputsPanel.Controls.Add(socketLbl);
+                body.Controls.Add(inDot);
             }
-
-            body.Controls.Add(inputsPanel);
-
-            // Output sockets
-            var outputsPanel = new FlowLayoutPanel
+            // Outputs indicator
+            if (Model.Outputs != null && Model.Outputs.Count > 0)
             {
-                Dock = DockStyle.Bottom,
-                Height = 20 + (Model.Outputs.Count * 16),
-                Padding = new Padding(8, 4, 8, 4)
-            };
-
-            foreach (var output in Model.Outputs)
-            {
-                var socketLbl = new Label
+                var outDot = new Panel
                 {
-                    Text = $"{output.Name} ●",
-                    ForeColor = output.IsConnected ? BrandTheme.Green : BrandTheme.Purple,
-                    Font = new Font("Segoe UI", 8f, FontStyle.Regular),
-                    AutoSize = true,
-                    Margin = new Padding(0, 2, 0, 2)
+                    Size = new Size(10, 10),
+                    Location = new Point(this.Width - 20, titleBar.Bottom + 6),
+                    BackColor = GetSocketColor(Model.Outputs[0].Type, dark: true)
                 };
-                outputsPanel.Controls.Add(socketLbl);
+                body.Controls.Add(outDot);
             }
-
-            body.Controls.Add(outputsPanel);
-
-            // Settings display
-            if (Model.Settings.Count > 0)
-            {
-                var settingsPanel = new Panel
-                {
-                    Dock = DockStyle.Fill,
-                    Padding = new Padding(8, 4, 8, 4)
-                };
-
-                var settingsLbl = new Label
-                {
-                    Text = "Settings: " + string.Join(", ", Model.Settings.Keys),
-                    ForeColor = BrandTheme.Text,
-                    Font = new Font("Segoe UI", 8f, FontStyle.Italic),
-                    AutoSize = true,
-                    Location = new Point(0, 0)
-                };
-                settingsPanel.Controls.Add(settingsLbl);
-                body.Controls.Add(settingsPanel);
-            }
-
-            this.Controls.Add(body);
         }
 
         private Color GetTitleBarColor()
         {
             if (IsShadowMode) return BrandTheme.ShadowMode;
-            
             return Model.Type switch
             {
                 "Extrude" => BrandTheme.Primary,
@@ -164,11 +89,27 @@ namespace Soft.Geometry.UI.FancyFe
             };
         }
 
+        private static Color GetSocketColor(string dataType, bool dark)
+        {
+            // Map common types to brand accents
+            Color baseColor = dataType switch
+            {
+                var t when string.IsNullOrWhiteSpace(t) => BrandTheme.Primary,
+                var t when t.ToLower().Contains("polyline") => BrandTheme.NeonCyan,
+                var t when t.ToLower().Contains("mesh") => BrandTheme.Purple,
+                var t when t.ToLower().Contains("surface") => BrandTheme.Blue,
+                var t when t.ToLower().Contains("number") => BrandTheme.Yellow,
+                _ => BrandTheme.Green
+            };
+            return dark ? BrandTheme.Darken(baseColor, 0.25) : baseColor;
+        }
+
         public void UpdatePosition(PointF pos)
         {
             Model.Position = pos;
             this.Left = (int)pos.X;
             this.Top = (int)pos.Y;
+            Invalidate();
         }
 
         public void UpdateSelection(bool selected)
@@ -181,69 +122,23 @@ namespace Soft.Geometry.UI.FancyFe
         {
             IsShadowMode = shadowMode;
             Model.IsShadowMode = shadowMode;
-            SetupVisuals(); // Recreate visuals with new shadow mode
+            BuildUi();
             Invalidate();
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
+            // Darker border for contrast
+            var borderColor = BrandTheme.Darken(BrandTheme.Border, 0.25);
+            using var pen = new Pen(borderColor, 1.5f);
+            e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
 
-            // Draw selection outline
             if (IsSelected)
             {
-                using var selPen = new Pen(Color.FromArgb(255, 0, 128), 2f);
-                e.Graphics.DrawRectangle(selPen, 1, 1, this.Width - 3, this.Height - 3);
+                using var selPen = new Pen(BrandTheme.PrimaryDark, 2f);
+                e.Graphics.DrawRectangle(selPen, 2, 2, Width - 5, Height - 5);
             }
-
-            // Draw resize grip
-            using var gripBrush = new SolidBrush(Color.FromArgb(160, 160, 160));
-            var gripRect = new Rectangle(this.Width - ResizeGripSize, this.Height - ResizeGripSize, ResizeGripSize, ResizeGripSize);
-            e.Graphics.FillRectangle(gripBrush, gripRect);
-        }
-
-        private void OnMouseDownInternal(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left && IsInResizeGrip(e.Location))
-            {
-                _isResizing = true;
-                _resizeStartMouse = PointToScreen(e.Location);
-                _resizeStartSize = this.Size;
-                this.Capture = true;
-            }
-        }
-
-        private void OnMouseMoveInternal(object sender, MouseEventArgs e)
-        {
-            if (_isResizing)
-            {
-                var current = PointToScreen(e.Location);
-                int dx = current.X - _resizeStartMouse.X;
-                int dy = current.Y - _resizeStartMouse.Y;
-                int newW = System.Math.Max(160, _resizeStartSize.Width + dx);
-                int newH = System.Math.Max(100, _resizeStartSize.Height + dy);
-                this.Size = new Size(newW, newH);
-                Model.Size = new SizeF(newW, newH);
-                Invalidate();
-            }
-            else
-            {
-                this.Cursor = IsInResizeGrip(e.Location) ? Cursors.SizeNWSE : Cursors.Default;
-            }
-        }
-
-        private void OnMouseUpInternal(object sender, MouseEventArgs e)
-        {
-            if (_isResizing)
-            {
-                _isResizing = false;
-                this.Capture = false;
-            }
-        }
-
-        private bool IsInResizeGrip(Point p)
-        {
-            return p.X >= this.Width - ResizeGripSize && p.Y >= this.Height - ResizeGripSize;
         }
     }
 }

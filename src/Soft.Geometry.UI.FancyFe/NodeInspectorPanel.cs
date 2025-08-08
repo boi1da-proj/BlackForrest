@@ -23,21 +23,18 @@ namespace Soft.Geometry.UI.FancyFe
             this.BackColor = BrandTheme.Surface;
             this.BorderStyle = BorderStyle.FixedSingle;
 
-            // Title
             _titleLabel = new Label
             {
                 Text = "Node Inspector",
                 Font = new Font("Segoe UI", 12f, FontStyle.Bold),
-                ForeColor = BrandTheme.Text,
+                ForeColor = Color.White,
                 Dock = DockStyle.Top,
                 Height = 30,
                 TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = BrandTheme.Primary,
-                ForeColor = Color.White
+                BackColor = BrandTheme.PrimaryDark
             };
             this.Controls.Add(_titleLabel);
 
-            // Properties panel
             _propertiesPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -70,10 +67,8 @@ namespace Soft.Geometry.UI.FancyFe
 
             _titleLabel.Text = $"Inspector: {_currentNode.Title}";
 
-            // Node type (read-only)
             AddPropertyRow("Type", _currentNode.Type, true);
 
-            // Position
             AddPropertyRow("X", _currentNode.Position.X.ToString("F1"), false, (value) =>
             {
                 if (float.TryParse(value, out float x))
@@ -92,7 +87,6 @@ namespace Soft.Geometry.UI.FancyFe
                 }
             });
 
-            // Node-specific settings
             if (_currentNode.Type == "Extrude")
             {
                 var height = _currentNode.Settings.ContainsKey("Height") ? _currentNode.Settings["Height"] : "1.0";
@@ -110,7 +104,6 @@ namespace Soft.Geometry.UI.FancyFe
                 });
             }
 
-            // Shadow mode toggle
             AddPropertyRow("Shadow Mode", _currentNode.IsShadowMode.ToString(), false, (value) =>
             {
                 if (bool.TryParse(value, out bool shadowMode))
@@ -126,7 +119,6 @@ namespace Soft.Geometry.UI.FancyFe
             var row = _propertiesPanel.RowCount;
             _propertiesPanel.RowCount++;
 
-            // Label
             var labelControl = new Label
             {
                 Text = label,
@@ -137,7 +129,6 @@ namespace Soft.Geometry.UI.FancyFe
             };
             _propertiesPanel.Controls.Add(labelControl, 0, row);
 
-            // Value control
             Control valueControl;
             if (readOnly)
             {
