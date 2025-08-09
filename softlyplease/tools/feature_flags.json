@@ -1,0 +1,13 @@
+{
+  "flags": {
+    "enableShadowV2": true,
+    "otelEnabled": false
+  },
+  "rollouts": {
+    "topology_v1": { "percentage": 10, "groups": ["canary"] }
+  },
+  "rules": {
+    "rule1": { "env_label": "dev" }
+  }
+}
+

@@ -1,0 +1,26 @@
+{
+  "$id": "https://softlyplease.dev/schemas/module_meta.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SoftlyPlease Module Metadata",
+  "type": "object",
+  "required": ["id", "version", "entrypoint", "kind"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+    "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+))?$" },
+    "entrypoint": { "type": "string", "pattern": "^[\\w./-]+:(\\w+)$" },
+    "kind": { "enum": ["module"] },
+    "language": { "type": "string" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "provides": { "type": "string" },
+    "category": { "type": "string", "enum": ["density", "levelset", "groundstructure", "thinshell", "voxel"] },
+    "dependencies": { "type": "array", "items": { "type": "string" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "provides": { "const": "algorithm/topology" } }, "required": ["provides"] },
+      "then": { "required": ["category"] }
+    }
+  ],
+  "unevaluatedProperties": false
+}
+

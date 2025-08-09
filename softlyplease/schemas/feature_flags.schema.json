@@ -1,0 +1,50 @@
+{
+  "$id": "https://softlyplease.dev/schemas/feature_flags.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SoftlyPlease Feature Flags",
+  "type": "object",
+  "properties": {
+    "flags": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "rollouts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "percentage": { "type": "number", "minimum": 0, "maximum": 100 },
+          "groups": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9_-]+$" } }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "percentage": { "exclusiveMaximum": 100 } }, "required": ["percentage"] },
+            "then": { "required": ["groups"] }
+          }
+        ],
+        "additionalProperties": false
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "string" },
+          "org_id": { "type": "string" },
+          "compute_target": { "enum": ["local", "onprem", "cloud"] },
+          "env_label": { "enum": ["dev", "stage", "prod"] }
+        },
+        "anyOf": [
+          { "required": ["user_id"] },
+          { "required": ["org_id"] },
+          { "required": ["compute_target"] },
+          { "required": ["env_label"] }
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}
+

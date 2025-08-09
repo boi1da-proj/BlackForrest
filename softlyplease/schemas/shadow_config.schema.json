@@ -1,0 +1,110 @@
+{
+  "$id": "https://softlyplease.dev/schemas/shadow_config.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SoftlyPlease Shadow Config",
+  "type": "object",
+  "required": ["runtime_type", "sandbox_policy", "environment_label"],
+  "properties": {
+    "runtime_type": { "enum": ["process", "container"] },
+    "sandbox_policy": { "enum": ["strict", "permissive"] },
+    "environment_label": { "enum": ["dev", "stage", "prod"] },
+    "shadow_module_search_path": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(\\.|/)?([\\w.-]+/)*[\\w.-]+$" }
+    },
+    "container_image": { "type": "string", "minLength": 1 },
+    "interpreter": {
+      "type": "object",
+      "properties": {
+        "python_version": { "type": "string", "pattern": "^3\\.[0-9]+$" },
+        "executable": { "type": "string", "pattern": "^(\\.|/)?([\\w.-]+/)*[\\w.-]+$" }
+      },
+      "additionalProperties": false
+    },
+    "network": {
+      "type": "object",
+      "properties": {
+        "allowed": { "type": "boolean", "default": false },
+        "allowlist": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "filesystem": {
+      "type": "object",
+      "properties": {
+        "writable": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^(\\.|/)?([\\w.-]+/)*[\\w.-]+$" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "resources": {
+      "$ref": "#/$defs/resources"
+    },
+    "gpu": {
+      "$ref": "#/$defs/gpu"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/dependency" }
+    },
+    "feature_flags": { "type": "object", "additionalProperties": { "type": "boolean" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "runtime_type": { "const": "container" } }, "required": ["runtime_type"] },
+      "then": { "required": ["container_image"] }
+    },
+    {
+      "if": { "properties": { "runtime_type": { "const": "process" } }, "required": ["runtime_type"] },
+      "then": { "required": ["interpreter"] }
+    },
+    {
+      "if": { "properties": { "sandbox_policy": { "const": "strict" } }, "required": ["sandbox_policy"] },
+      "then": {
+        "properties": {
+          "network": {
+            "properties": {
+              "allowed": { "const": false }
+            }
+          },
+          "filesystem": {
+            "required": ["writable"]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "resources": {
+      "type": "object",
+      "properties": {
+        "cpu": { "type": "object", "properties": { "cores": { "type": "integer", "minimum": 1, "maximum": 64 } }, "additionalProperties": false },
+        "memory": { "type": "object", "properties": { "gib": { "type": "number", "minimum": 0.25, "maximum": 512 } }, "additionalProperties": false }
+      },
+      "additionalProperties": false
+    },
+    "gpu": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "vendor": { "type": "string", "enum": ["nvidia", "amd", "apple"] },
+        "count": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        { "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] }, "then": { "required": ["vendor", "count"] } }
+      ],
+      "additionalProperties": false
+    },
+    "dependency": {
+      "type": "string",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+(\[[A-Za-z0-9_,.-]+\])?([<>=!~]=?\s*[A-Za-z0-9*_.+-]+)?$" },
+        { "pattern": "^(\\.|/)?([\\w.-]+/)*[\\w.-]+$" }
+      ]
+    }
+  },
+  "unevaluatedProperties": false
+}
+
