@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, windows]
+    runs-on: [self-hosted, Windows, X64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,7 +16,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path "C:\apps\rhino.compute\current" -Force | Out-Null
-          New-Item -ItemType Directory -Path "C:\logs\rhpino-compute" -Force | Out-Null
+          New-Item -ItemType Directory -Path "C:\logs\rhino-compute" -Force | Out-Null
 
       - name: Show IIS site info (debug)
         shell: pwsh
