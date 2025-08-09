@@ -11,3 +11,9 @@ Key pieces:
 - `api/server.py` (FastAPI wrapper)
 - `requirements.txt`
 
+Runbook
+- python -m pip install -r requirements.txt
+- python tools/regen_artifact_index.py && python tools/verify_index.py artifact_index.json schemas/artifact_index.schema.json
+- uvicorn api.server:app --reload
+- open viewer/index.html (or proxy /run to the API)
+
