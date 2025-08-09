@@ -1,0 +1,39 @@
+name: Deploy rhino.compute to IIS VM (Option A canonical payload)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preflight: ensure canonical and log directories
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "C:\apps\rhino.compute\current" -Force | Out-Null
+          New-Item -ItemType Directory -Path "C:\logs\rhpino-compute" -Force | Out-Null
+
+      - name: Show IIS site info (debug)
+        shell: pwsh
+        run: |
+          Import-Module WebAdministration
+          Get-Website -Name 'Rhino.Compute' | Format-List name,physicalPath,applicationPool,state
+
+      - name: Deploy to IIS
+        shell: pwsh
+        env:
+          SITE_NAME: Rhino.Compute
+          PAYLOAD_SRC: C:\apps\rhino.compute\current
+          HEALTH_URL: http://localhost/version
+        run: |
+          & "${{ github.workspace }}\scripts\deploy-compute.ps1" `
+            -SiteName  $env:SITE_NAME `
+            -PayloadSrc $env:PAYLOAD_SRC `
+            -HealthUrl $env:HEALTH_URL
+
+
