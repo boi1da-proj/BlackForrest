@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["version", "generated_at", "artifacts", "environments", "policies"],
+  "properties": {
+    "version": {"type": "string"},
+    "generated_at": {"type": "string"},
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256", "size"],
+        "properties": {
+          "path": {"type": "string"},
+          "sha256": {"type": "string"},
+          "size": {"type": "integer", "minimum": 0},
+          "type": {"type": "string"},
+          "module_id": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "environments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label"],
+        "properties": {"label": {"type": "string"}}
+      }
+    },
+    "policies": {"type": "object"}
+  },
+  "additionalProperties": true
+}
+

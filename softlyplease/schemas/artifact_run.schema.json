@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["timestamp", "module", "status"],
+  "properties": {
+    "timestamp": {"type": "number"},
+    "module": {"type": "string"},
+    "status": {"enum": ["ok", "error", "timeout"]},
+    "environment": {"type": "string"},
+    "summary": {"type": "object"}
+  }
+}
+

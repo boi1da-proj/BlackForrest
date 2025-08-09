@@ -1,0 +1,8 @@
+{
+  "runtime_type": "process",
+  "sandbox_policy": "strict",
+  "environment_label": "dev",
+  "shadow_module_search_path": ["./modules"],
+  "feature_flags": {"enableShadowV2": true}
+}
+
