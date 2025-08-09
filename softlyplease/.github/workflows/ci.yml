@@ -23,4 +23,9 @@ jobs:
         working-directory: softlyplease
         run: |
           python tools/verify_index.py artifact_index.json schemas/artifact_index.schema.json
+      - name: Package API (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: softlyplease-api
+          path: softlyplease
 
