@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, hashlib, time
+import json, hashlib, time, datetime
 from pathlib import Path
 
 
@@ -19,20 +19,25 @@ def sha256_file(p: Path) -> str:
 def main():
     root = Path(__file__).resolve().parents[1]
     module = root / "modules" / "compute_aabb" / "module.py"
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
     idx = {
         "version": "1.0.0",
-        "generated_at": str(int(time.time())),
+        "generated_at": now_iso,
         "artifacts": [],
-        "environments": [{"label": "dev"}, {"label": "ci"}, {"label": "prod"}],
-        "policies": {"sandbox": "process", "write_root": ".", "network": "deny"},
+        "environments": {"dev": {}, "stage": {}, "prod": {}},
+        "policies": {"sandbox_policy": "strict", "default_runtime": "process"},
     }
     if module.is_file():
+        rel = module.relative_to(root).as_posix()
         idx["artifacts"].append({
-            "path": module.relative_to(root).as_posix(),
+            "id": "compute_aabb",
+            "path": rel,
             "sha256": sha256_file(module),
             "size": module.stat().st_size,
-            "type": "shadow_module",
-            "module_id": "compute_aabb",
+            "kind": "module",
+            "language": "python",
+            "entrypoint": rel,
+            "version": "0.1.0",
         })
     json.dump(idx, open(root / "artifact_index.json", "w", encoding="utf-8"), indent=2, sort_keys=True)
     print("Wrote artifact_index.json")

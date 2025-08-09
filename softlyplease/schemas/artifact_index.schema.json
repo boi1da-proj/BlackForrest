@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://softlyplease.dev/schemas/artifact_index.schema.json",
   "type": "object",
   "required": ["version","generated_at","artifacts","environments","policies"],
   "properties": {
@@ -22,7 +23,8 @@
           "dependencies": {"type":"array","items":{"type":"string"}},
           "container_image": {"type":"string"},
           "env_labels": {"type":"array","items":{"type":"string"}}
-        }
+        },
+        "unevaluatedProperties": false
       }
     },
     "environments": {
@@ -40,45 +42,7 @@
         "default_runtime": {"enum":["process","container"]}
       }
     }
-  }
-}
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "required": ["version", "generated_at", "artifacts", "environments", "policies"],
-  "properties": {
-    "version": {"type": "string"},
-    "generated_at": {"type": "string"},
-    "artifacts": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "path", "sha256", "size", "kind"],
-        "properties": {
-          "id": {"type":"string"},
-          "path": {"type":"string"},
-          "sha256": {"type":"string"},
-          "size": {"type":"integer"},
-          "kind": {"enum":["module","asset","config","schema","code"]},
-          "language": {"type":"string"},
-          "entrypoint": {"type":"string"},
-          "version": {"type":"string"},
-          "dependencies": {"type":"array","items":{"type":"string"}},
-          "container_image": {"type":"string"}
-        },
-        "additionalProperties": true
-      }
-    },
-    "environments": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["label"],
-        "properties": {"label": {"type": "string"}}
-      }
-    },
-    "policies": {"type": "object"}
   },
-  "additionalProperties": true
+  "unevaluatedProperties": false
 }
 
