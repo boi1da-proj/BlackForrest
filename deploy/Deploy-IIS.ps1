@@ -1,7 +1,9 @@
 param(
   [Parameter(Mandatory=$true)][string]$ZipPath,
   [Parameter(Mandatory=$true)][string]$SitePath,
-  [Parameter(Mandatory=$true)][string]$AppPool
+  [Parameter(Mandatory=$true)][string]$AppPool,
+  [string]$HealthUrl,
+  [int]$HealthTimeoutSec = 20
 )
 
 Import-Module WebAdministration
@@ -19,7 +21,36 @@ try {
   Expand-Archive -Path $ZipPath -DestinationPath $SitePath -Force
   Start-WebAppPool -Name $AppPool
   Start-Sleep -Seconds 5
-  Write-Host "Deployment complete. Consider verifying logs and performing an HTTP health check."
+
+  if ($HealthUrl) {
+    Write-Host "Health check: $HealthUrl (timeout ${HealthTimeoutSec}s)"
+    $ok = $false
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    while ($sw.Elapsed.TotalSeconds -lt $HealthTimeoutSec) {
+      try {
+        $resp = Invoke-WebRequest -Uri $HealthUrl -UseBasicParsing -TimeoutSec 5
+        if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 500) { $ok = $true; break }
+      } catch { Start-Sleep -Seconds 2 }
+    }
+    $sw.Stop()
+    if (-not $ok) {
+      Write-Warning "Health check failed. Rolling back to backup..."
+      Stop-WebAppPool -Name $AppPool -ErrorAction SilentlyContinue
+      # Clear new contents
+      Get-ChildItem -Force -Path $SitePath | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+      # Restore backup
+      if (Test-Path $backup) {
+        Get-ChildItem -Force -Path $backup | Move-Item -Destination $SitePath
+        Remove-Item -Force -Recurse $backup -ErrorAction SilentlyContinue
+      }
+      Start-WebAppPool -Name $AppPool
+      throw "Deployment rolled back due to failing health check."
+    } else {
+      Write-Host "Health check OK."
+    }
+  } else {
+    Write-Host "Deployment complete. No health check URL provided."
+  }
 } catch {
   Write-Error $_
   throw

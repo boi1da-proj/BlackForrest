@@ -10,6 +10,17 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Download rhino.compute payload from private release
+        if: env.RC_RELEASE_URL
+        shell: pwsh
+        env:
+          RC_RELEASE_URL: ${{ secrets.RC_RELEASE_URL }}
+          RC_RELEASE_TOKEN: ${{ secrets.RC_RELEASE_TOKEN }}
+        run: |
+          if (-not $env:RC_RELEASE_URL) { exit 0 }
+          $hdr=@{ Authorization = "token $env:RC_RELEASE_TOKEN" }
+          Invoke-WebRequest -Headers $hdr -Uri $env:RC_RELEASE_URL -OutFile compute_payload.zip
+          Expand-Archive -Path compute_payload.zip -DestinationPath deploy/site -Force
       - name: Validate payload
         shell: pwsh
         run: |
@@ -37,9 +48,10 @@ jobs:
         env:
           IIS_SITE_PATH: ${{ secrets.IIS_SITE_PATH }}
           IIS_APP_POOL:  ${{ secrets.IIS_APP_POOL }}
+          HEALTH_URL:    ${{ secrets.IIS_HEALTH_URL }}
         run: |
           if (-not $env:IIS_SITE_PATH -or -not $env:IIS_APP_POOL) { throw "Set repo secrets IIS_SITE_PATH and IIS_APP_POOL" }
           $script = Join-Path $pwd 'deploy/Deploy-IIS.ps1'
           if (!(Test-Path $script)) { throw "deploy/Deploy-IIS.ps1 missing" }
-          & $script -ZipPath (Join-Path $pwd 'site.zip') -SitePath $env:IIS_SITE_PATH -AppPool $env:IIS_APP_POOL
+          & $script -ZipPath (Join-Path $pwd 'site.zip') -SitePath $env:IIS_SITE_PATH -AppPool $env:IIS_APP_POOL -HealthUrl $env:HEALTH_URL -HealthTimeoutSec 30
 
