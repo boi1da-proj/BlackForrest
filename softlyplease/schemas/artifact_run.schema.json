@@ -7,7 +7,8 @@
     "module": {"type": "string"},
     "status": {"enum": ["ok", "error", "timeout"]},
     "environment": {"type": "string"},
-    "summary": {"type": "object"}
+    "summary": {"type": "object"},
+    "run_id": {"type": "string"}
   }
 }
 

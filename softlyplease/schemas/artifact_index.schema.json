@@ -9,13 +9,18 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["path", "sha256", "size"],
+        "required": ["id", "path", "sha256", "size", "kind"],
         "properties": {
-          "path": {"type": "string"},
-          "sha256": {"type": "string"},
-          "size": {"type": "integer", "minimum": 0},
-          "type": {"type": "string"},
-          "module_id": {"type": "string"}
+          "id": {"type":"string"},
+          "path": {"type":"string"},
+          "sha256": {"type":"string"},
+          "size": {"type":"integer"},
+          "kind": {"enum":["module","asset","config","schema","code"]},
+          "language": {"type":"string"},
+          "entrypoint": {"type":"string"},
+          "version": {"type":"string"},
+          "dependencies": {"type":"array","items":{"type":"string"}},
+          "container_image": {"type":"string"}
         },
         "additionalProperties": true
       }

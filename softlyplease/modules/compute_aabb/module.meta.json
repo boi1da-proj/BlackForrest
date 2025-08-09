@@ -1,0 +1,8 @@
+{
+  "id": "compute_aabb",
+  "entrypoint": "modules/compute_aabb/module.py",
+  "language": "python",
+  "version": "0.1.0",
+  "kind": "module"
+}
+
